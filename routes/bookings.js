@@ -68,6 +68,36 @@ router.get("/", async (req, res) => {
 });
 
 
+// ✅ Get booking statistics
+router.get("/stats", async (req, res) => {
+  try {
+    const bookings = await Booking.find();
+    console.log("All Bookings:", bookings);
+    const statuses = ["Pending", "Confirmed", "Completed", "Cancelled"];
+
+    const stats = await Booking.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    console.log("Aggregated Stats:", stats);
+
+    // Convert results into an object with default values (if some statuses have 0 count)
+    const result = statuses.reduce((acc, status) => {
+      acc[status] = stats.find(s => s._id === status)?.count || 0;
+      return acc;
+    }, {});
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 // ✅ Get a single booking by ID
 router.get("/:id", async (req, res) => {
